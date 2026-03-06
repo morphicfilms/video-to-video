@@ -1,0 +1,126 @@
+[project]
+name = "v2v-release"
+version = "0.1.0"
+description = "V2V video generation: 3D camera path visualizer and novel-view synthesis pipeline"
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+
+# ── Core visualizer dependencies ─────────────────────────────────────────────
+dependencies = [
+    # 3D viewer (browser-based, works locally and over SSH)
+    "viser>=0.2.0",
+    # Numerics
+    "numpy>=1.24",
+    "scipy>=1.10",
+    # Video / image I/O
+    "opencv-python>=4.8",
+    "Pillow>=10.0",
+    # Progress bars
+    "tqdm>=4.65",
+    # Web backend for R3F frontend (alternative visualizer)
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+]
+
+# ── Optional dependency groups ────────────────────────────────────────────────
+# Install with: uv sync --group <name>
+[dependency-groups]
+
+# Depth estimation (GeometryCrafter + MoGe v2)
+depth = [
+    "torch>=2.1",
+    "torchvision>=0.16",
+    "diffusers>=0.27",
+    "transformers>=4.38",
+    "accelerate>=0.27",
+    "huggingface-hub>=0.21",
+    # Video loading (faster than OpenCV for seeking)
+    "decord>=0.6",
+    # Debug depth-video writing (estimate_depth.py::_save_depth_video)
+    "imageio>=2.34",
+    "imageio-ffmpeg>=0.5",
+    # Geometry / image processing used by GeometryCrafter
+    "kornia>=0.7",
+    # MoGe v2 depth estimation
+    "moge @ git+https://github.com/microsoft/MoGe.git",
+]
+
+# Rendering / novel-view warping (render_from_cam_info.py)
+render = [
+    "torch>=2.1",
+    "torchvision>=0.16",
+    # PyTorch3D has no Linux PyPI wheels and cannot be resolved by `uv lock`
+    # ahead of time — it must be built after torch is installed.
+    # install.sh handles this automatically; see [tool.uv.sources] below.
+    "einops>=0.7",
+    "kornia>=0.7",
+    "imageio>=2.34",
+    "imageio-ffmpeg>=0.5",
+]
+
+# Video generation (WAN 2.2 fine-tune)
+generation = [
+    "torch>=2.4.0",
+    "torchvision>=0.19.0",
+    "diffusers>=0.31.0",
+    "transformers>=4.49.0",
+    "tokenizers>=0.20.3",
+    "accelerate>=1.1.1",
+    "tqdm",
+    "imageio",
+    "imageio-ffmpeg",
+    "easydict",
+    "ftfy",
+    "numpy>=1.24,<2",
+    # flash_attn must be installed separately (requires compilation)
+    # LoRA fine-tuning
+    "peft",
+    # Video loading
+    "decord",
+    "av",
+]
+
+# Development / testing
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.4",
+]
+
+# Web frontend/backend integration helpers (backend deps already in core `dependencies`)
+# Note: frontend JS dependencies are managed by npm in `frontend/package.json`.
+web = [
+    "python-multipart>=0.0.9",
+    # Optional uv-only bootstrap for local Node.js + npm (used by run_web_frontend.sh)
+    "nodeenv>=1.9",
+]
+
+# One-command local setup for development / demos / end-to-end runs.
+full = [
+    { include-group = "depth" },
+    { include-group = "render" },
+    { include-group = "generation" },
+    { include-group = "dev" },
+    { include-group = "web" },
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["visualizer", "backend", "wan"]
+
+[tool.v2v.frontend]
+directory = "frontend"
+package_manager = "npm"
+node_version = ">=18"
+npm_version = ">=9"
+api_base_env = "VITE_API_BASE"
+node_bootstrap_version = "20.11.1"
+uv_bootstrap = "uv run --with nodeenv python -m nodeenv --prebuilt --node=20.11.1 .nodeenv"
+
+[tool.v2v.frontend.scripts]
+install = "npm install"
+dev = "npm run dev"
+build = "npm run build"
+preview = "npm run preview"

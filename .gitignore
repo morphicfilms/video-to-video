@@ -1,0 +1,45 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Cloned third-party dependencies (installed by install.sh)
+.deps/
+
+# Frontend build/deps
+frontend/node_modules/
+frontend/dist/
+.nodeenv/
+
+# WAN generation outputs
+outputs/
+ablations/
+
+# Large/generated files
+.cache/
+render_outputs/
+render_outputs_numpy_test/
+scripted_6_18.zip
+
+# Inherited from WAN 1.2.2 — not used in this project
+requirements.txt
+requirements_animate.txt
+requirements_s2v.txt
+_unused/
+examples/
+
+# Misc
+.DS_Store
+.vscode*
+nohup*
+*.egg-info
+visualizer/test_data/__init__.py
+visualizer/test_data/make_synthetic_scene.py
+visualizer/test_data/test_depths.npz
+visualizer/test_data/test_video.mp4
