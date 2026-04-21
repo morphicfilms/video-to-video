@@ -17,9 +17,6 @@ dependencies = [
     "Pillow>=10.0",
     # Progress bars
     "tqdm>=4.65",
-    # Web backend for R3F frontend (alternative visualizer)
-    "fastapi>=0.115",
-    "uvicorn>=0.30",
 ]
 
 # ── Optional dependency groups ────────────────────────────────────────────────
@@ -88,21 +85,12 @@ dev = [
     "ruff>=0.4",
 ]
 
-# Web frontend/backend integration helpers (backend deps already in core `dependencies`)
-# Note: frontend JS dependencies are managed by npm in `frontend/package.json`.
-web = [
-    "python-multipart>=0.0.9",
-    # Optional uv-only bootstrap for local Node.js + npm (used by run_web_frontend.sh)
-    "nodeenv>=1.9",
-]
-
 # One-command local setup for development / demos / end-to-end runs.
 full = [
     { include-group = "depth" },
     { include-group = "render" },
     { include-group = "generation" },
     { include-group = "dev" },
-    { include-group = "web" },
 ]
 
 [build-system]
@@ -110,19 +98,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["visualizer", "backend", "wan"]
-
-[tool.v2v.frontend]
-directory = "frontend"
-package_manager = "npm"
-node_version = ">=18"
-npm_version = ">=9"
-api_base_env = "VITE_API_BASE"
-node_bootstrap_version = "20.11.1"
-uv_bootstrap = "uv run --with nodeenv python -m nodeenv --prebuilt --node=20.11.1 .nodeenv"
-
-[tool.v2v.frontend.scripts]
-install = "npm install"
-dev = "npm run dev"
-build = "npm run build"
-preview = "npm run preview"
+packages = ["visualizer", "wan"]
