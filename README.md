@@ -132,7 +132,9 @@ the LoRA paths at the top to point at your condition pack, then:
 
 The base WAN 2.2 checkpoint is auto-downloaded from HuggingFace
 (`Wan-AI/Wan2.2-I2V-A14B`) if `CKPT_DIR` is unset. Pretrained LoRA weights
-release is pending (see Implementation Status above).
+release is pending (see Implementation Status above); once published, the
+launcher will accept an `hf://<org>/<repo>/<filename>` URI for
+`HIGH_NOISE_LORA_WEIGHTS` / `LOW_NOISE_LORA_WEIGHTS` in place of a local path.
 
 The launcher assumes **8 GPUs**. For different GPU counts, edit `NUM_GPUS`,
 `CUDA_VISIBLE_DEVICES`, and `--ulysses_size` in the script.

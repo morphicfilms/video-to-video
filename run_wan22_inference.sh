@@ -5,8 +5,11 @@ NUM_GPUS=8
 NCCL_DEBUG=INFO
 
 SAVE_FOLDER="outputs"
-# LoRA weights will be downloaded from HuggingFace automatically if not set.
-# Override by setting these env vars or editing the paths below.
+# LoRA weights: pass either a local path to a `.safetensors` file, or an
+# `hf://<org>/<repo>/<filename>` URI to auto-download from HuggingFace, e.g.
+#   HIGH_NOISE_LORA_WEIGHTS="hf://morphic/reshoot-anything/lora_high_noise.safetensors"
+# When unset, inference runs without any LoRA (base WAN 2.2 only).
+# Reshoot-Anything LoRA release is pending — see Implementation Status in README.
 HIGH_NOISE_LORA_WEIGHTS="${HIGH_NOISE_LORA_WEIGHTS:-}"
 LOW_NOISE_LORA_WEIGHTS="${LOW_NOISE_LORA_WEIGHTS:-}"
 

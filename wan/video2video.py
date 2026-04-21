@@ -55,18 +55,26 @@ def process_mask_v2v(loaded_tensor):
 
 def load_lora_weights_from_safetensors(lora_path):
     """
-    Load LoRA weights from safetensors file and rename keys from ".weight" to ".default.weight".
+    Load LoRA weights from a local safetensors file or a HuggingFace Hub URI,
+    and rename keys from ".weight" to ".default.weight".
 
-    Args:
-        lora_path (str): Path to the LoRA weights safetensors file
-
-    Returns:
-        dict: Modified state dictionary with renamed keys
-
-    Raises:
-        FileNotFoundError: If the lora_path does not exist
+    Accepts either:
+      - a local filesystem path to a `.safetensors` file, or
+      - an `hf://<repo_id>/<filename>` URI (e.g. `hf://morphic/reshoot-anything/lora_high_noise.safetensors`),
+        which is resolved via `huggingface_hub.hf_hub_download`.
     """
-    if not os.path.exists(lora_path):
+    if lora_path.startswith("hf://"):
+        repo_and_file = lora_path[len("hf://"):]
+        repo_id, _, filename = repo_and_file.rpartition("/")
+        if not repo_id or not filename:
+            raise ValueError(
+                f"Invalid HuggingFace LoRA URI: {lora_path!r}. "
+                "Expected format: hf://<org>/<repo>/<filename.safetensors>"
+            )
+        from huggingface_hub import hf_hub_download
+        logging.info(f"Downloading LoRA weights from HuggingFace: {repo_id}/{filename}")
+        lora_path = hf_hub_download(repo_id=repo_id, filename=filename)
+    elif not os.path.exists(lora_path):
         raise FileNotFoundError(f"LoRA weights file not found: {lora_path}")
 
     # Load the entire state_dict
