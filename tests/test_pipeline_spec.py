@@ -1,4 +1,5 @@
 # Copyright 2025-2026 Morphic Inc. Licensed under Apache 2.0.
+"""Comprehensive tests for pipeline_spec frame count utilities."""
 import pytest
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -26,6 +27,11 @@ class TestWanConsumedFrames:
             assert c >= prev or c == prev
             prev = c
 
+    def test_formula_matches_wan_source(self):
+        for total in range(4, 300):
+            expected = (total // 4) * 4 + 1 - 4
+            assert wan_consumed_frames(total) == expected
+
 
 class TestRenderFramesForWanOutput:
     def test_known_values(self):
@@ -34,23 +40,26 @@ class TestRenderFramesForWanOutput:
         assert render_frames_for_wan_output(49) == 52
         assert render_frames_for_wan_output(5) == 8
 
-    def test_round_trip(self):
-        for desired in range(5, 300, 4):
+    def test_round_trip_all_valid(self):
+        for desired in range(5, 500, 4):
             r = render_frames_for_wan_output(desired)
-            assert wan_consumed_frames(r) == desired, f"failed for desired={desired}"
+            assert wan_consumed_frames(r) == desired
 
-    def test_rejects_invalid(self):
-        with pytest.raises(ValueError):
-            render_frames_for_wan_output(80)
+    def test_rejects_non_4k_plus_1(self):
+        for bad in [6, 7, 8, 10, 80, 82, 100]:
+            with pytest.raises(ValueError, match="4k\\+1"):
+                render_frames_for_wan_output(bad)
+
+    def test_rejects_zero_and_negative(self):
         with pytest.raises(ValueError):
             render_frames_for_wan_output(0)
         with pytest.raises(ValueError):
-            render_frames_for_wan_output(6)
+            render_frames_for_wan_output(-1)
 
 
 class TestSnapToValidWanOutput:
-    def test_already_valid(self):
-        for n in [5, 9, 13, 77, 81, 101]:
+    def test_already_valid_unchanged(self):
+        for n in [5, 9, 13, 77, 81, 101, 201, 497]:
             assert snap_to_valid_wan_output(n) == n
 
     def test_snaps_down(self):
@@ -59,16 +68,47 @@ class TestSnapToValidWanOutput:
         assert snap_to_valid_wan_output(83) == 81
         assert snap_to_valid_wan_output(50) == 49
 
-    def test_minimum(self):
-        assert snap_to_valid_wan_output(1) == 5
-        assert snap_to_valid_wan_output(4) == 5
+    def test_minimum_clamp(self):
+        for n in range(0, 5):
+            assert snap_to_valid_wan_output(n) == 5
+
+    def test_result_always_valid(self):
+        for n in range(1, 500):
+            snapped = snap_to_valid_wan_output(n)
+            assert is_valid_wan_frame_count(snapped)
+            assert snapped <= n or snapped == 5
 
 
 class TestIsValidWanFrameCount:
-    def test_valid(self):
-        for n in [5, 9, 13, 49, 77, 81, 101, 201]:
-            assert is_valid_wan_frame_count(n), f"{n} should be valid"
+    def test_valid_sequence(self):
+        for k in range(1, 100):
+            assert is_valid_wan_frame_count(4 * k + 1)
 
     def test_invalid(self):
-        for n in [0, 1, 3, 4, 6, 7, 8, 10, 80]:
-            assert not is_valid_wan_frame_count(n), f"{n} should be invalid"
+        for n in [0, 1, 2, 3, 4, 6, 7, 8, 10, 80]:
+            assert not is_valid_wan_frame_count(n)
+
+    def test_boundary(self):
+        assert is_valid_wan_frame_count(5)
+        assert not is_valid_wan_frame_count(4)
+
+
+class TestDefaultWorkflow:
+    """Test the typical user workflow: pick desired WAN output, compute render frames."""
+
+    def test_default_81(self):
+        desired = 81
+        snapped = snap_to_valid_wan_output(desired)
+        assert snapped == 81
+        render = render_frames_for_wan_output(snapped)
+        assert render == 84
+        consumed = wan_consumed_frames(render)
+        assert consumed == 81
+
+    def test_user_picks_round_number(self):
+        desired = 100
+        snapped = snap_to_valid_wan_output(desired)
+        assert snapped == 97
+        render = render_frames_for_wan_output(snapped)
+        consumed = wan_consumed_frames(render)
+        assert consumed == 97
