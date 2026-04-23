@@ -1,6 +1,6 @@
 # Reshoot-Anything
 
-> *Reshoot-Anything: A Self-Supervised Model for In-the-Wild Video Reshooting*
+> *Reshoot-Anything: A Self-Supervised Model for In-the-Wild Video Reshooting*  
 > [Avinash Paliwal](http://avinashpaliwal.com/),
 > [Adithya Iyer](https://adithyaiyer1999.github.io/),
 > Shivin Yadav,
