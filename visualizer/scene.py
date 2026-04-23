@@ -1,3 +1,4 @@
+# Copyright 2025-2026 Morphic Inc. Licensed under Apache 2.0.
 """
 scene.py — Point cloud loading and frame-to-3D projection utilities.
 

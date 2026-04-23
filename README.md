@@ -50,7 +50,7 @@ Requirements: **Python 3.10**, **CUDA toolkit** (matching your PyTorch build, e.
 for `torch>=2.4`), and [`uv`](https://docs.astral.sh/uv/getting-started/installation/).
 
 ```bash
-git clone TODO
+git clone https://github.com/morphicfilms/video-to-video.git
 cd video-to-video
 
 uv venv --python 3.10

@@ -1,3 +1,4 @@
+# Copyright 2025-2026 Morphic Inc. Licensed under Apache 2.0.
 """
 camera_editor.py — Camera keyframe state management for the Viser viewer.
 

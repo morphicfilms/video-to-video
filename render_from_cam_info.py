@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Copyright 2025-2026 Morphic Inc. Licensed under Apache 2.0.
 """
 render_from_cam_info.py — Novel-view point-cloud renderer + condition-pack exporter.
 

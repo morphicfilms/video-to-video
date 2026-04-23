@@ -1,3 +1,4 @@
+# Copyright 2025-2026 Morphic Inc. Licensed under Apache 2.0.
 """
 app_autodepth.py — Viser visualizer launcher with automatic depth estimation.
 

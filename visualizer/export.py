@@ -1,3 +1,4 @@
+# Copyright 2025-2026 Morphic Inc. Licensed under Apache 2.0.
 """
 export.py — Export camera path data to cam_info.json.
 

@@ -90,11 +90,6 @@ def load_lora_weights_from_safetensors(lora_path):
         new_k = k[: -len(".weight")] + ".default.weight"
         lora_weights[new_k] = v
 
-    # print all weight keys in the lora_weights which have "patch" in the key
-    for k in lora_weights:
-        if "patch" in k:
-            print(f"Key {k} has patch in the key")
-
     return lora_weights
 
 

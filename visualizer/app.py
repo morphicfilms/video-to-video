@@ -1,3 +1,4 @@
+# Copyright 2025-2026 Morphic Inc. Licensed under Apache 2.0.
 """
 app.py — Main entry point for the V2V 3D Camera Path Visualizer.
 

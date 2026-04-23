@@ -2,7 +2,7 @@
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 NUM_GPUS=8
-NCCL_DEBUG=INFO
+NCCL_DEBUG="${NCCL_DEBUG:-WARN}"
 
 SAVE_FOLDER="outputs"
 # LoRA weights: pass either a local path to a `.safetensors` file, or an

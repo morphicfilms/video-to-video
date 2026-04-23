@@ -1,3 +1,4 @@
+# Copyright 2025-2026 Morphic Inc. Licensed under Apache 2.0.
 """
 render_pointcloud.py — PyTorch3D-based GPU point-cloud rasterizer.
 
