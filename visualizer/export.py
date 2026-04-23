@@ -16,8 +16,13 @@ All matrices are world-to-camera, OpenCV convention, stored as nested lists.
 """
 
 import json
+import logging
 import os
 import numpy as np
+
+from pipeline_spec import is_valid_wan_frame_count, wan_consumed_frames
+
+logger = logging.getLogger(__name__)
 
 
 def export_cam_info(
@@ -39,6 +44,14 @@ def export_cam_info(
         W:           int  image width in pixels.
         output_path: str  path to write the .json file (directories created if needed).
     """
+    n_target = len(w2c_targets)
+    wan_out = wan_consumed_frames(n_target)
+    if not is_valid_wan_frame_count(wan_out):
+        logger.warning(
+            f"Target frame count {n_target} yields {wan_out} WAN frames "
+            f"(not 4k+1). WAN will silently truncate to {((wan_out - 1) // 4) * 4 + 1} frames."
+        )
+
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
     extrinsics = [w2c_source.tolist()] + [m.tolist() for m in w2c_targets]
@@ -48,13 +61,14 @@ def export_cam_info(
         "extrinsic": extrinsics,
         "height": int(H),
         "width":  int(W),
+        "k_resolution": [int(H), int(W)],
     }
 
     with open(output_path, "w") as f:
         json.dump(cam_info, f, indent=2)
 
-    n_target = len(w2c_targets)
     print(f"[export] Wrote {1 + n_target} cameras (1 source + {n_target} target) → {output_path}")
+    print(f"[export] WAN will use {wan_out} of {n_target} target frames.")
 
 
 def load_cam_info(json_path: str) -> dict:
@@ -72,9 +86,12 @@ def load_cam_info(json_path: str) -> dict:
     with open(json_path, "r") as f:
         raw = json.load(f)
 
-    return {
+    result = {
         "intrinsic": np.array(raw["intrinsic"], dtype=np.float32),
         "extrinsic": np.array(raw["extrinsic"], dtype=np.float32),
         "height":    int(raw["height"]),
         "width":     int(raw["width"]),
     }
+    if "k_resolution" in raw:
+        result["k_resolution"] = tuple(int(x) for x in raw["k_resolution"])
+    return result

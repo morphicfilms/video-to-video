@@ -28,6 +28,12 @@ import time
 from pathlib import Path
 
 import numpy as np
+from pipeline_spec import (
+    is_valid_wan_frame_count,
+    render_frames_for_wan_output,
+    snap_to_valid_wan_output,
+    wan_consumed_frames,
+)
 import viser
 
 from .camera_editor import CameraEditor, _wxyz_to_rotation
@@ -217,10 +223,11 @@ def run(args: argparse.Namespace) -> None:
 
     # ── Pre-compute world-space point clouds for each frame ───────────────────
     print(f"[app] Unprojecting {T} frames (subsample={args.subsample}) ...")
+    K_inv = np.linalg.inv(K)
     all_points: list[np.ndarray] = []   # Viser Y-up world space
     all_colors: list[np.ndarray] = []
     for i in range(T):
-        pts, cols = unproject_frame(frames[i], depths[i], K, subsample=args.subsample)
+        pts, cols = unproject_frame(frames[i], depths[i], K, subsample=args.subsample, K_inv=K_inv)
         # Transform to OpenCV world space then flip to Viser Y-up space
         pts_world = transform_points_to_world(pts, c2w_0)
         pts_viser = _opencv_pts_to_viser(pts_world)
@@ -264,7 +271,7 @@ def run(args: argparse.Namespace) -> None:
     state = {
         "frame_idx": 0,
         "show_all":  False,
-        "n_output":  args.nframe,
+        "n_output":  render_frames_for_wan_output(snap_to_valid_wan_output(args.nframe)),
         "show_gizmos": False,
         "show_guide": True,
     }
@@ -546,10 +553,17 @@ def run(args: argparse.Namespace) -> None:
                                           disabled=True)
         show_gizmos_cb = server.gui.add_checkbox("Show Keyframe Gizmos", initial_value=False)
         with server.gui.add_folder("Path Settings", expand_by_default=True):
+            _default_wan = snap_to_valid_wan_output(args.nframe)
+            _default_render = render_frames_for_wan_output(_default_wan)
             nframe_num   = server.gui.add_number(
-                "Output frames",
-                initial_value=args.nframe,
-                min=2, max=500, step=1,
+                "WAN output frames",
+                initial_value=_default_wan,
+                min=5, max=497, step=4,
+            )
+            render_frame_info = server.gui.add_text(
+                "Render frames",
+                initial_value=str(_default_render),
+                disabled=True,
             )
             easing_dd = server.gui.add_dropdown(
                 "Transition",
@@ -844,7 +858,12 @@ def run(args: argparse.Namespace) -> None:
 
     @nframe_num.on_update
     def _on_nframe(event: viser.GuiEvent) -> None:
-        state["n_output"] = int(event.target.value)
+        wan_frames = snap_to_valid_wan_output(int(event.target.value))
+        if int(event.target.value) != wan_frames:
+            nframe_num.value = wan_frames
+        n_render = render_frames_for_wan_output(wan_frames)
+        render_frame_info.value = str(n_render)
+        state["n_output"] = n_render
 
     @easing_dd.on_update
     def _on_easing(event: viser.GuiEvent) -> None:
@@ -907,11 +926,12 @@ def run(args: argparse.Namespace) -> None:
                 W=W,
                 output_path=out,
             )
-            _set_status(f"Exported {n} cameras → `{out}`")
+            wan_out = wan_consumed_frames(n)
+            _set_status(f"Exported {n} render frames ({wan_out} WAN output) → `{out}`")
             if client is not None:
                 client.add_notification(
                     title="Exported",
-                    body=f"cam_info.json written to:\n{out}",
+                    body=f"{n} render frames → {wan_out} WAN output frames\n{out}",
                     color="blue",
                     auto_close_seconds=6.0,
                 )
@@ -1286,7 +1306,8 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--video",  default=None, help="Input video (.mp4)")
     p.add_argument("--depth",  default=None, help="Metric depth maps (.npz with 'depths' key)")
     p.add_argument("--output", default="cam_info.json", help="Output JSON path (default: cam_info.json)")
-    p.add_argument("--nframe", default=81, type=int,  help="Number of output frames (default: 81)")
+    p.add_argument("--nframe", default=81, type=int,
+                   help="Desired WAN output frames (snapped to nearest 4k+1; default: 81)")
     p.add_argument("--focal",  default=1.0, type=float, help="Focal length multiplier (default: 1.0)")
     p.add_argument("--start-elevation", dest="start_elevation", default=5.0, type=float,
                    help="Source camera elevation in degrees (default: 5.0)")

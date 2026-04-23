@@ -70,6 +70,16 @@ def load_depth_maps(depth_path: str) -> np.ndarray:
         depths = depths[:, 0]
     if depths.ndim != 3:
         raise ValueError(f"Expected depth shape [T, H, W] or [T, 1, H, W], got {depths.shape}")
+
+    valid = depths[np.isfinite(depths) & (depths > 0)]
+    if valid.size > 0:
+        median_d = float(np.median(valid))
+        if median_d < 0.01 or median_d > 100.0:
+            print(
+                f"[scene] WARNING: median depth = {median_d:.4f} m — "
+                f"outside typical metric range [0.01, 100]. "
+                f"Check that depth values are in metres."
+            )
     return depths
 
 
@@ -97,6 +107,7 @@ def unproject_frame(
     depth: np.ndarray,
     K: np.ndarray,
     subsample: int = 1,
+    K_inv: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Lift a single RGB frame + depth map into a coloured 3-D point cloud
@@ -107,13 +118,15 @@ def unproject_frame(
         depth:      float32 [H, W]  metric depth
         K:          float32 [3, 3]  camera intrinsics
         subsample:  int — keep every n-th pixel (1 = full resolution)
+        K_inv:      float32 [3, 3]  precomputed inverse of K (avoids redundant inv per frame)
 
     Returns:
         points_xyz: float32 [N, 3]  3-D positions in camera space
         colors_rgb: uint8   [N, 3]  corresponding RGB colours
     """
     H, W = depth.shape
-    K_inv = np.linalg.inv(K)
+    if K_inv is None:
+        K_inv = np.linalg.inv(K)
 
     ys = np.arange(0, H, subsample)
     xs = np.arange(0, W, subsample)

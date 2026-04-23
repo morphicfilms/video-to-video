@@ -99,6 +99,15 @@ def _load_cam_info(cam_info_path: str) -> tuple[np.ndarray, np.ndarray, int, int
         raise ValueError(
             f"cam_info extrinsic must be [N>=2,4,4] (source + targets), got {extr.shape}"
         )
+    k_res = raw.get("k_resolution")
+    if k_res is not None:
+        k_h, k_w = int(k_res[0]), int(k_res[1])
+        if (k_h, k_w) != (H, W):
+            print(
+                f"[render] WARNING: cam_info K was computed at ({k_h}, {k_w}) "
+                f"but height/width is ({H}, {W}). Intrinsic scaling will use "
+                f"({H}, {W}) as source — verify this is correct."
+            )
     return K, extr, H, W
 
 

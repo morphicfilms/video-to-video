@@ -39,23 +39,26 @@ def _sanitize_filename(name: str) -> str:
     return safe or f"video_{int(time.time())}.mp4"
 
 
-def _video_cache_key(video_path: str) -> str:
+def _video_cache_key(video_path: str, method: str = "", max_res: int = 0, steps: int = 0) -> str:
     """
-    Stable key for a specific video file version.
+    Stable key for a specific video file + depth estimation config.
 
-    Uses resolved path + file size + mtime ns so we can reuse depth unless the
-    file itself changes.
+    Uses resolved path + file size + mtime ns + estimation params so we
+    invalidate the cache when either the video or the estimation config changes.
     """
     p = Path(video_path).expanduser().resolve()
     st = p.stat()
-    raw = f"{p}:{st.st_size}:{st.st_mtime_ns}"
+    raw = f"{p}:{st.st_size}:{st.st_mtime_ns}:{method}:{max_res}:{steps}"
     return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:12]
 
 
-def _default_depth_output(video_path: str, depth_cache_dir: str) -> Path:
+def _default_depth_output(
+    video_path: str, depth_cache_dir: str,
+    method: str = "", max_res: int = 0, steps: int = 0,
+) -> Path:
     video = Path(video_path)
     stem = _sanitize_filename(video.stem)
-    key = _video_cache_key(video_path)
+    key = _video_cache_key(video_path, method=method, max_res=max_res, steps=steps)
     out_dir = Path(depth_cache_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     return out_dir / f"{stem}_{key}_depths.npz"
@@ -188,7 +191,12 @@ def _prepare_depth(
     args: argparse.Namespace,
     status_cb: Callable[[str], None] | None = None,
 ) -> str:
-    out = Path(depth_path).expanduser().resolve() if depth_path else _default_depth_output(video_path, args.depth_cache_dir)
+    out = Path(depth_path).expanduser().resolve() if depth_path else _default_depth_output(
+        video_path, args.depth_cache_dir,
+        method=getattr(args, "depth_method", ""),
+        max_res=getattr(args, "depth_max_res", 0),
+        steps=getattr(args, "depth_steps", 0),
+    )
     out.parent.mkdir(parents=True, exist_ok=True)
 
     if out.exists() and args.reuse_depth:
@@ -657,7 +665,7 @@ def _make_upload_handler(
                                  "-an", str(mp4_path), "-y"],
                                 capture_output=True, text=True,
                             )
-                            if result.returncode == 0:
+                            if result.returncode == 0 and mp4_path.exists() and mp4_path.stat().st_size > 0:
                                 out_path.unlink(missing_ok=True)
                                 out_path = mp4_path
                                 filename = Path(filename).stem + ".mp4"
