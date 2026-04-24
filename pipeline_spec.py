@@ -76,6 +76,19 @@ def is_valid_wan_frame_count(n: int) -> bool:
     return n >= 5 and (n - 1) % 4 == 0
 
 
+def max_wan_frames_for_source(n_source: int) -> int:
+    """Largest valid WAN output frame count that fits within *n_source* frames.
+
+    The render count must not exceed the source count (1:1 mapping), and the
+    WAN-consumed count must be 4k+1.
+    """
+    snapped = snap_to_valid_wan_output(n_source)
+    render_needed = render_frames_for_wan_output(snapped)
+    if render_needed <= n_source:
+        return snapped
+    return snap_to_valid_wan_output(snapped - 4)
+
+
 # ── Condition pack validation ────────────────────────────────────────────────
 
 CONDITION_PACK_FILES = (

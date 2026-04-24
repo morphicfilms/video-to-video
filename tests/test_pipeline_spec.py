@@ -6,6 +6,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from pipeline_spec import (
     is_valid_wan_frame_count,
+    max_wan_frames_for_source,
     render_frames_for_wan_output,
     snap_to_valid_wan_output,
     wan_consumed_frames,
@@ -91,6 +92,24 @@ class TestIsValidWanFrameCount:
     def test_boundary(self):
         assert is_valid_wan_frame_count(5)
         assert not is_valid_wan_frame_count(4)
+
+
+class TestMaxWanFramesForSource:
+    def test_render_fits_within_source(self):
+        for n_src in range(8, 300):
+            max_wan = max_wan_frames_for_source(n_src)
+            render_needed = render_frames_for_wan_output(max_wan)
+            assert render_needed <= n_src, f"n_src={n_src}: render={render_needed} > source"
+
+    def test_result_is_valid(self):
+        for n_src in range(8, 300):
+            max_wan = max_wan_frames_for_source(n_src)
+            assert is_valid_wan_frame_count(max_wan), f"n_src={n_src}: {max_wan} not 4k+1"
+
+    def test_known_values(self):
+        assert max_wan_frames_for_source(30) == 25
+        assert max_wan_frames_for_source(100) == 97
+        assert max_wan_frames_for_source(84) == 81
 
 
 class TestDefaultWorkflow:

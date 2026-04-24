@@ -30,6 +30,7 @@ from pathlib import Path
 import numpy as np
 from pipeline_spec import (
     is_valid_wan_frame_count,
+    max_wan_frames_for_source,
     render_frames_for_wan_output,
     snap_to_valid_wan_output,
     wan_consumed_frames,
@@ -288,7 +289,7 @@ def run(args: argparse.Namespace) -> None:
     state = {
         "frame_idx": 0,
         "show_all":  False,
-        "n_output":  render_frames_for_wan_output(snap_to_valid_wan_output(args.nframe)),
+        "n_output":  render_frames_for_wan_output(min(snap_to_valid_wan_output(args.nframe), max_wan_frames_for_source(T))),
         "show_gizmos": False,
         "show_guide": True,
         "guide_mode": "Border only",
@@ -592,12 +593,13 @@ def run(args: argparse.Namespace) -> None:
             )
             btn_apply_preset = server.gui.add_button("Apply Preset", color="teal")
         with server.gui.add_folder("Path Settings", expand_by_default=False):
-            _default_wan = snap_to_valid_wan_output(args.nframe)
+            _max_wan = max_wan_frames_for_source(T)
+            _default_wan = min(snap_to_valid_wan_output(args.nframe), _max_wan)
             _default_render = render_frames_for_wan_output(_default_wan)
             nframe_num   = server.gui.add_number(
                 "WAN output frames",
                 initial_value=_default_wan,
-                min=5, max=497, step=4,
+                min=5, max=_max_wan, step=4,
             )
             render_frame_info = server.gui.add_text(
                 "Render frames",

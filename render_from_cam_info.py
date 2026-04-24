@@ -484,13 +484,15 @@ def render_assets_from_paths(
     n_out = len(w2c_targets)
     if n_out <= 0:
         raise ValueError("cam_info.json contains no target cameras (need extrinsic[1:]).")
+    if n_out > n_src:
+        raise ValueError(
+            f"More target cameras ({n_out}) than source frames ({n_src}). "
+            f"Render requires 1:1 frame mapping — reduce output frames to <= {n_src}."
+        )
 
-    # Map each output camera to a source frame/depth index.
-    if n_out == 1:
-        src_indices = np.array([0], dtype=np.int32)
-    else:
-        src_indices = np.rint(np.linspace(0, n_src - 1, n_out)).astype(np.int32)
-    print(f"[render] Source frames={n_src}, target cameras={n_out}, mapped source indices range={src_indices.min()}..{src_indices.max()}")
+    # 1:1 mapping: output frame i uses source frame i.
+    src_indices = np.arange(n_out, dtype=np.int32)
+    print(f"[render] Source frames={n_src}, target cameras={n_out} (1:1 mapping)")
 
     fps_out = float(fps) if fps and fps > 0 else float(src_fps)
     bgs = _parse_backgrounds(backgrounds)
