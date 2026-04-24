@@ -581,14 +581,17 @@ def run(args: argparse.Namespace) -> None:
         kf_count   = server.gui.add_text("Keyframes placed", initial_value="0",
                                           disabled=True)
         show_gizmos_cb = server.gui.add_checkbox("Show Keyframe Gizmos", initial_value=False)
-        with server.gui.add_folder("Presets", expand_by_default=False):
+        status_md   = server.gui.add_markdown(
+            "_Place at least 2 cameras, then click Preview or Export._"
+        )
+        with server.gui.add_folder("Presets", expand_by_default=True):
             preset_dd = server.gui.add_dropdown(
                 "Trajectory preset",
                 options=list(PRESET_NAMES),
                 initial_value=PRESET_NAMES[0],
             )
             btn_apply_preset = server.gui.add_button("Apply Preset", color="teal")
-        with server.gui.add_folder("Path Settings", expand_by_default=True):
+        with server.gui.add_folder("Path Settings", expand_by_default=False):
             _default_wan = snap_to_valid_wan_output(args.nframe)
             _default_render = render_frames_for_wan_output(_default_wan)
             nframe_num   = server.gui.add_number(
@@ -608,9 +611,6 @@ def run(args: argparse.Namespace) -> None:
             )
         btn_preview      = server.gui.add_button("Preview Path")
         btn_render_preview = server.gui.add_button("Render Video Preview", color="teal")
-        status_md   = server.gui.add_markdown(
-            "_Place at least 2 cameras, then click Preview or Export._"
-        )
         # Video Preview (collapsed by default)
         with server.gui.add_folder("Video Preview", expand_by_default=False):
             btn_open_preview = server.gui.add_button(
@@ -632,7 +632,7 @@ def run(args: argparse.Namespace) -> None:
         )
         btn_export = server.gui.add_button("Export cam_info.json", color="blue")
 
-        with server.gui.add_folder("Render Assets", expand_by_default=False):
+        with server.gui.add_folder("Render Assets", expand_by_default=True):
             render_out_dir_txt = server.gui.add_text(
                 "Render output dir",
                 initial_value=default_render_dir,
