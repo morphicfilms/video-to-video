@@ -1299,6 +1299,7 @@ def run(args: argparse.Namespace) -> None:
         infer_status_md.content = "_Launching inference…_"
 
         def _infer_worker() -> None:
+            import time as _time
             try:
                 cmd_flat = cmd_str.replace("\\\n    ", " ")
                 proc = subprocess.Popen(
@@ -1309,11 +1310,23 @@ def run(args: argparse.Namespace) -> None:
                     stderr=subprocess.STDOUT,
                     text=True,
                 )
+                last_update = 0.0
+                _SHOW_KEYWORDS = ("step ", "sample", "loading", "saving", "generating", "complete", "pipeline")
+                _SKIP_KEYWORDS = ("http request", "cas::", "xet", "timestamp", "resolve-cache", "reconstruct")
                 for line in proc.stdout:
                     line = line.rstrip()
-                    if line:
-                        infer_status_md.content = f"_{line[-120:]}_"
-                        print(f"[inference] {line}")
+                    if not line:
+                        continue
+                    print(f"[inference] {line}")
+                    low = line.lower()
+                    if any(k in low for k in _SKIP_KEYWORDS):
+                        continue
+                    now = _time.monotonic()
+                    is_progress = any(k in low for k in _SHOW_KEYWORDS) or "%" in line
+                    if is_progress or now - last_update > 5.0:
+                        clean = line.strip().lstrip("[").split("]", 1)[-1].strip()
+                        infer_status_md.content = f"_{clean[-100:]}_"
+                        last_update = now
                 proc.wait()
                 if proc.returncode == 0:
                     infer_status_md.content = "_Inference complete!_"
