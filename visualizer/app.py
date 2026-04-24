@@ -1146,7 +1146,25 @@ def run(args: argparse.Namespace) -> None:
                 else:
                     from render_from_cam_info import render_assets_from_paths
 
-                    outputs = render_assets_from_paths(**params)
+                    def _on_progress(done: int, total: int) -> None:
+                        _set_status(f"Rendering frame {done}/{total} …")
+
+                    outputs = render_assets_from_paths(**params, progress_cb=_on_progress)
+
+                from pipeline_spec import validate_condition_pack
+                pack_issues = validate_condition_pack(params["output_dir"])
+                if pack_issues:
+                    warnings = "; ".join(pack_issues)
+                    _set_status(f"Render done with warnings: {warnings}")
+                    if client is not None:
+                        client.add_notification(
+                            title="Render Complete (warnings)",
+                            body="\n".join(pack_issues),
+                            color="yellow",
+                            auto_close_seconds=10.0,
+                        )
+                    return
+
                 _set_status(f"Render assets complete → `{params['output_dir']}`")
                 if client is not None:
                     client.add_notification(

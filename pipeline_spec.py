@@ -9,7 +9,17 @@ is chosen carefully. The utilities here encode this constraint so the visualizer
 renderer, and inference script all agree on frame counts.
 """
 
+from __future__ import annotations
+
+import json
 import logging
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Callable
+
+import cv2
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -64,3 +74,73 @@ def snap_to_valid_wan_output(n: int) -> int:
 def is_valid_wan_frame_count(n: int) -> bool:
     """Check if *n* is a valid WAN output frame count (4k+1 form, >= 5)."""
     return n >= 5 and (n - 1) % 4 == 0
+
+
+# ── Condition pack validation ────────────────────────────────────────────────
+
+CONDITION_PACK_FILES = (
+    "render.mp4",
+    "render_mask.mp4",
+    "input.mp4",
+    "reference.png",
+    "cam_info.json",
+)
+
+
+def _video_frame_count(path: str) -> int:
+    cap = cv2.VideoCapture(path)
+    n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.release()
+    return n
+
+
+def validate_condition_pack(output_dir: str) -> list[str]:
+    """Validate a rendered condition pack for WAN inference.
+
+    Returns a list of warning/error strings. Empty list = all OK.
+    """
+    issues: list[str] = []
+    d = Path(output_dir)
+
+    for fname in CONDITION_PACK_FILES:
+        p = d / fname
+        if not p.exists():
+            issues.append(f"Missing: {fname}")
+        elif p.stat().st_size == 0:
+            issues.append(f"Empty file: {fname}")
+
+    if issues:
+        return issues
+
+    render_n = _video_frame_count(str(d / "render.mp4"))
+    mask_n = _video_frame_count(str(d / "render_mask.mp4"))
+    input_n = _video_frame_count(str(d / "input.mp4"))
+
+    if render_n != mask_n:
+        issues.append(f"Frame count mismatch: render.mp4={render_n}, render_mask.mp4={mask_n}")
+    if render_n != input_n:
+        issues.append(f"Frame count mismatch: render.mp4={render_n}, input.mp4={input_n}")
+
+    wan_frames = wan_consumed_frames(render_n)
+    if wan_frames < 5:
+        issues.append(
+            f"WAN will only use {wan_frames} frames from {render_n} rendered — "
+            f"need at least 8 rendered frames for a usable output."
+        )
+    else:
+        dropped = render_n - wan_frames
+        if dropped > 0:
+            optimal = render_frames_for_wan_output(wan_frames)
+            if render_n != optimal:
+                issues.append(
+                    f"WAN will use {wan_frames} of {render_n} frames "
+                    f"(dropping {dropped}). Optimal render count: {optimal}."
+                )
+
+    pink_path = d / "render_pink.mp4"
+    if pink_path.exists():
+        pink_n = _video_frame_count(str(pink_path))
+        if pink_n != render_n:
+            issues.append(f"Frame count mismatch: render_pink.mp4={pink_n}, render.mp4={render_n}")
+
+    return issues

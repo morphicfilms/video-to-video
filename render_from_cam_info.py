@@ -442,6 +442,7 @@ def render_assets_from_paths(
     nb_neighbors: int = 20,
     std_ratio: float = 2.0,
     backgrounds: str = "black,pink",
+    progress_cb: callable = None,
 ) -> dict[str, str]:
     if subsample < 1:
         raise ValueError("--subsample must be >= 1")
@@ -592,6 +593,8 @@ def render_assets_from_paths(
 
         if (j + 1) % 10 == 0 or j == n_out - 1:
             print(f"  {j+1}/{n_out}", end="\r", flush=True)
+        if progress_cb is not None:
+            progress_cb(j + 1, n_out)
     print()
 
     # Also export the trimmed source video used for rendering.
