@@ -675,6 +675,7 @@ def run(args: argparse.Namespace) -> None:
                     "SOR Std Ratio", initial_value=4.0, min=0.0, max=10.0, step=0.1
                 )
             btn_render_assets = server.gui.add_button("Render Videos + Masks", color="teal")
+        render_status_md = server.gui.add_markdown("")
 
     # ── "Load New Video" button (below tabs) ────────────────────────────────
     server.gui.add_markdown("---")
@@ -1091,9 +1092,12 @@ def run(args: argparse.Namespace) -> None:
         }
         render_python = str(render_python_txt.value).strip()
 
+        def _render_status(msg: str) -> None:
+            render_status_md.content = f"_{msg}_"
+
         def _worker() -> None:
             try:
-                _set_status(f"Rendering assets to `{params['output_dir']}` …")
+                _render_status(f"Rendering assets to `{params['output_dir']}` …")
                 if client is not None:
                     client.add_notification(
                         title="Render Started",
@@ -1147,7 +1151,7 @@ def run(args: argparse.Namespace) -> None:
                     from render_from_cam_info import render_assets_from_paths
 
                     def _on_progress(done: int, total: int) -> None:
-                        _set_status(f"Rendering frame {done}/{total} …")
+                        _render_status(f"Rendering frame {done}/{total} …")
 
                     outputs = render_assets_from_paths(**params, progress_cb=_on_progress)
 
@@ -1155,7 +1159,7 @@ def run(args: argparse.Namespace) -> None:
                 pack_issues = validate_condition_pack(params["output_dir"])
                 if pack_issues:
                     warnings = "; ".join(pack_issues)
-                    _set_status(f"Render done with warnings: {warnings}")
+                    _render_status(f"Render done with warnings: {warnings}")
                     if client is not None:
                         client.add_notification(
                             title="Render Complete (warnings)",
@@ -1165,7 +1169,7 @@ def run(args: argparse.Namespace) -> None:
                         )
                     return
 
-                _set_status(f"Render assets complete → `{params['output_dir']}`")
+                _render_status(f"Render complete → `{params['output_dir']}`")
                 if client is not None:
                     client.add_notification(
                         title="Render Complete",
@@ -1177,7 +1181,7 @@ def run(args: argparse.Namespace) -> None:
                         auto_close_seconds=6.0,
                     )
             except Exception as exc:
-                _set_status(f"Render assets error: {exc}")
+                _render_status(f"Render error: {exc}")
                 print(f"[render assets error] {exc}")
                 if client is not None:
                     client.add_notification(
