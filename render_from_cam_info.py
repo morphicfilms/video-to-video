@@ -301,7 +301,7 @@ def _render_frame_gpu(
     sobel_threshold: float,
     background_rgb: np.ndarray,
     nb_neighbors: int = 20,
-    std_ratio: float = 2.0,
+    std_ratio: float = 1.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     Render one frame using the PyTorch3D point rasterizer (GPU).
@@ -440,7 +440,7 @@ def render_assets_from_paths(
     points_per_pixel: int = 8,
     sobel_threshold: float = 0.35,
     nb_neighbors: int = 20,
-    std_ratio: float = 2.0,
+    std_ratio: float = 1.0,
     backgrounds: str = "black,pink",
     progress_cb: callable = None,
 ) -> dict[str, str]:

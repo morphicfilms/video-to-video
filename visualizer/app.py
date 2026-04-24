@@ -744,6 +744,7 @@ def run(args: argparse.Namespace) -> None:
 
     @btn_load_result.on_click
     def _on_load_result(event: viser.GuiEvent) -> None:
+        import cv2
         rdir = Path(results_dir_txt.value.strip())
         fname = results_file_dd.value
         vpath = rdir / fname
@@ -1313,7 +1314,7 @@ def run(args: argparse.Namespace) -> None:
         n_gpus = int(infer_num_gpus.value)
         parts = [
             f"CUDA_VISIBLE_DEVICES={','.join(str(i) for i in range(n_gpus))}",
-            f"torchrun --master-port=29501 --nproc_per_node={n_gpus}",
+            f"{sys.executable} -m torch.distributed.run --master-port=29501 --nproc_per_node={n_gpus}",
             "inference_wan22_v2v_local.py",
             "--task=i2v-A14B",
             f"--size={infer_size_txt.value.strip()}",
@@ -1368,6 +1369,8 @@ def run(args: argparse.Namespace) -> None:
             import time as _time
             try:
                 cmd_flat = cmd_str.replace("\\\n    ", " ")
+                print(f"[inference] Running: {cmd_flat}", flush=True)
+                infer_status_md.content = "_Starting subprocess…_"
                 proc = subprocess.Popen(
                     cmd_flat,
                     shell=True,
@@ -1375,26 +1378,30 @@ def run(args: argparse.Namespace) -> None:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     text=True,
+                    bufsize=1,
                 )
                 last_update = 0.0
                 _SKIP_PREFIXES = ("http request", "cas::", "xet", '"timestamp"', "resolve-cache", "reconstruct")
-                for line in proc.stdout:
-                    line = line.rstrip()
-                    if not line:
-                        continue
-                    print(f"[inference] {line}", flush=True)
-                    low = line.lower()
-                    is_error = "error" in low or "traceback" in low or "exception" in low
-                    is_noise = not is_error and any(k in low for k in _SKIP_PREFIXES)
-                    if is_noise:
-                        continue
-                    now = _time.monotonic()
-                    if is_error or "%" in line or now - last_update > 3.0:
-                        clean = line.strip().lstrip("[").split("]", 1)[-1].strip()
-                        infer_status_md.content = f"_{clean[-120:]}_"
-                        last_update = now
-                proc.wait()
-                if proc.returncode == 0:
+                try:
+                    for line in proc.stdout:
+                        line = line.rstrip()
+                        if not line:
+                            continue
+                        print(f"[inference] {line}", flush=True)
+                        low = line.lower()
+                        is_error = "error" in low or "traceback" in low or "exception" in low
+                        is_noise = not is_error and any(k in low for k in _SKIP_PREFIXES)
+                        if is_noise:
+                            continue
+                        now = _time.monotonic()
+                        if is_error or "%" in line or now - last_update > 3.0:
+                            clean = line.strip().lstrip("[").split("]", 1)[-1].strip()
+                            infer_status_md.content = f"_{clean[-120:]}_"
+                            last_update = now
+                except (BrokenPipeError, OSError):
+                    pass
+                rc = proc.wait()
+                if rc == 0:
                     infer_status_md.content = "_Inference complete!_"
                     if event.client is not None:
                         event.client.add_notification(
@@ -1403,10 +1410,13 @@ def run(args: argparse.Namespace) -> None:
                             color="green",
                         )
                 else:
-                    infer_status_md.content = f"_Inference failed (exit {proc.returncode}). Check terminal._"
+                    msg = f"Inference failed (exit {rc}). Check terminal."
+                    infer_status_md.content = f"_{msg}_"
+                    print(f"[inference] {msg}", flush=True)
             except Exception as exc:
-                infer_status_md.content = f"_Inference error: {exc}_"
-                print(f"[inference error] {exc}")
+                msg = f"Inference error: {exc}"
+                infer_status_md.content = f"_{msg}_"
+                print(f"[inference] {msg}", flush=True)
 
         threading.Thread(target=_infer_worker, daemon=True).start()
 

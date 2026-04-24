@@ -171,6 +171,9 @@ def point_rendering_2(
 
     point_depth = einops.rearrange(depth[0], "c h w -> (h w) c")  # [HW, 1]
 
+    # Filter invalid depth (zero, negative, inf/nan) before any processing.
+    valid_depth = (point_depth[:, 0] > 1e-4) & torch.isfinite(point_depth[:, 0])
+
     # Boundary mask from disparity (suppress depth-edge points).
     disp = 1.0 / (depth + 1e-7)
     boundary_mask = _get_boundaries_mask(disp, sobel_threshold=sobel_threshold)
@@ -189,11 +192,11 @@ def point_rendering_2(
 
     colors = einops.rearrange(image[0], "c h w -> (h w) c")  # [HW, 3]
 
-    # Apply boundary mask.
+    # Apply depth validity + boundary mask.
     bm = boundary_mask.reshape(-1)
     if sam_mask is not None:
         bm[sam_mask.reshape(-1) == True] = True
-    keep = bm == False
+    keep = (bm == False) & valid_depth
     points_3d = points_3d[keep]
     colors = colors[keep]
 
