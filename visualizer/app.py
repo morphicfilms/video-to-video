@@ -706,12 +706,10 @@ def run(args: argparse.Namespace) -> None:
                 "Sample steps", initial_value=40, min=1, max=100, step=1,
             )
             infer_high_lora_txt = server.gui.add_text(
-                "High-noise LoRA",
-                initial_value="/data/adi_temp/MorphicVideo/ckpts/jan06_scaling_80k_ckpt1400.safetensors",
+                "High-noise LoRA", initial_value="",
             )
             infer_low_lora_txt = server.gui.add_text(
-                "Low-noise LoRA",
-                initial_value="/data/adi_temp/MorphicVideo/ckpts/dec23_v2v_lownoise_black_lora_512_ckpt1000.safetensors",
+                "Low-noise LoRA", initial_value="",
             )
             infer_ckpt_dir_txt = server.gui.add_text(
                 "Checkpoint dir (blank = auto-download)", initial_value="",
@@ -1355,6 +1353,13 @@ def run(args: argparse.Namespace) -> None:
         pack = infer_pack_dir_txt.value.strip()
         if not pack or not Path(pack).exists():
             infer_status_md.content = "_Condition pack dir does not exist._"
+            return
+
+        if not infer_high_lora_txt.value.strip() or not infer_low_lora_txt.value.strip():
+            infer_status_md.content = (
+                "_LoRA weights required. Set both High-noise and Low-noise LoRA paths "
+                "(local .safetensors or hf:// URI)._"
+            )
             return
 
         from pipeline_spec import validate_condition_pack

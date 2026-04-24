@@ -10,8 +10,10 @@ SAVE_FOLDER="outputs"
 #   HIGH_NOISE_LORA_WEIGHTS="hf://morphic/reshoot-anything/lora_high_noise.safetensors"
 # When unset, inference runs without any LoRA (base WAN 2.2 only).
 # Reshoot-Anything LoRA release is pending — see Implementation Status in README.
-HIGH_NOISE_LORA_WEIGHTS="${HIGH_NOISE_LORA_WEIGHTS:-/data/adi_temp/MorphicVideo/ckpts/jan06_scaling_80k_ckpt1400.safetensors}"
-LOW_NOISE_LORA_WEIGHTS="${LOW_NOISE_LORA_WEIGHTS:-/data/adi_temp/MorphicVideo/ckpts/dec23_v2v_lownoise_black_lora_512_ckpt1000.safetensors}"
+# TODO: Update with public HuggingFace URIs once weights are released, e.g.
+#   HIGH_NOISE_LORA_WEIGHTS="hf://morphic/reshoot-anything/lora_high_noise.safetensors"
+HIGH_NOISE_LORA_WEIGHTS="${HIGH_NOISE_LORA_WEIGHTS:-}"
+LOW_NOISE_LORA_WEIGHTS="${LOW_NOISE_LORA_WEIGHTS:-}"
 
 # Base model checkpoint directory.
 # If not set, the model will be downloaded from HuggingFace (Wan-AI/Wan2.2-I2V-A14B).
