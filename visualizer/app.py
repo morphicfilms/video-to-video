@@ -679,6 +679,45 @@ def run(args: argparse.Namespace) -> None:
             btn_render_assets = server.gui.add_button("Render Videos + Masks", color="teal")
         render_status_md = server.gui.add_markdown("")
 
+    # ── Inference tab ────────────────────────────────────────────────────────
+    with tab_group.add_tab("Inference", icon=viser.Icon.PLAYER_PLAY):
+        server.gui.add_markdown(
+            "_Generate the reshot video from a rendered condition pack._"
+        )
+        infer_pack_dir_txt = server.gui.add_text(
+            "Condition pack dir",
+            initial_value=default_render_dir,
+        )
+        infer_caption_txt = server.gui.add_text(
+            "Caption",
+            initial_value="",
+        )
+        infer_save_folder_txt = server.gui.add_text(
+            "Output folder",
+            initial_value="outputs",
+        )
+        with server.gui.add_folder("Model Settings", expand_by_default=False):
+            infer_num_gpus = server.gui.add_number(
+                "Num GPUs", initial_value=8, min=1, max=16, step=1,
+            )
+            infer_size_txt = server.gui.add_text("Resolution", initial_value="832*480")
+            infer_steps_num = server.gui.add_number(
+                "Sample steps", initial_value=40, min=1, max=100, step=1,
+            )
+            infer_high_lora_txt = server.gui.add_text(
+                "High-noise LoRA", initial_value="",
+            )
+            infer_low_lora_txt = server.gui.add_text(
+                "Low-noise LoRA", initial_value="",
+            )
+            infer_ckpt_dir_txt = server.gui.add_text(
+                "Checkpoint dir (blank = auto-download)", initial_value="",
+            )
+        btn_gen_cmd = server.gui.add_button("Generate Command", color="blue")
+        btn_launch_infer = server.gui.add_button("Launch Inference", color="green")
+        infer_cmd_md = server.gui.add_markdown("")
+        infer_status_md = server.gui.add_markdown("")
+
     # ── "Load New Video" button (below tabs) ────────────────────────────────
     server.gui.add_markdown("---")
     btn_new_video = server.gui.add_button(
@@ -1200,6 +1239,97 @@ def run(args: argparse.Namespace) -> None:
         t = threading.Thread(target=_worker, daemon=True)
         render_assets_job["thread"] = t
         t.start()
+
+    # ── Inference handlers ────────────────────────────────────────────────────
+
+    def _build_inference_cmd() -> str:
+        pack = infer_pack_dir_txt.value.strip()
+        n_gpus = int(infer_num_gpus.value)
+        parts = [
+            f"CUDA_VISIBLE_DEVICES={','.join(str(i) for i in range(n_gpus))}",
+            f"torchrun --master-port=29501 --nproc_per_node={n_gpus}",
+            "inference_wan22_v2v_local.py",
+            "--task=i2v-A14B",
+            f"--size={infer_size_txt.value.strip()}",
+            "--dit_fsdp --t5_fsdp",
+            f"--ulysses_size={n_gpus}",
+            f"--sample_steps={int(infer_steps_num.value)}",
+            f'--save_folder="{infer_save_folder_txt.value.strip()}"',
+            "--sample_solver=unipc --sample_shift=5",
+            "--lora_alpha=512 --lora_rank=512",
+            f'--base_folder="{pack}"',
+            '--video_path="render.mp4"',
+            '--mask_path="render_mask.mp4"',
+            '--ref_path="input.mp4"',
+            '--mask_pink_path="render_pink.mp4"',
+            f'--caption="{infer_caption_txt.value.strip()}"',
+            '--video_id="output.mp4"',
+        ]
+        ckpt = infer_ckpt_dir_txt.value.strip()
+        if ckpt:
+            parts.insert(5, f'--ckpt_dir="{ckpt}"')
+        high_lora = infer_high_lora_txt.value.strip()
+        if high_lora:
+            parts.append(f'--high_noise_lora_weights="{high_lora}"')
+        low_lora = infer_low_lora_txt.value.strip()
+        if low_lora:
+            parts.append(f'--low_noise_lora_weights="{low_lora}"')
+        return " \\\n    ".join(parts)
+
+    @btn_gen_cmd.on_click
+    def _on_gen_cmd(event: viser.GuiEvent) -> None:
+        cmd = _build_inference_cmd()
+        infer_cmd_md.content = f"```bash\n{cmd}\n```"
+
+    @btn_launch_infer.on_click
+    def _on_launch_infer(event: viser.GuiEvent) -> None:
+        pack = infer_pack_dir_txt.value.strip()
+        if not pack or not Path(pack).exists():
+            infer_status_md.content = "_Condition pack dir does not exist._"
+            return
+
+        from pipeline_spec import validate_condition_pack
+        issues = validate_condition_pack(pack)
+        if any("Missing" in i for i in issues):
+            infer_status_md.content = f"_Condition pack incomplete: {'; '.join(issues)}_"
+            return
+
+        cmd_str = _build_inference_cmd()
+        infer_cmd_md.content = f"```bash\n{cmd_str}\n```"
+        infer_status_md.content = "_Launching inference…_"
+
+        def _infer_worker() -> None:
+            try:
+                cmd_flat = cmd_str.replace("\\\n    ", " ")
+                proc = subprocess.Popen(
+                    cmd_flat,
+                    shell=True,
+                    cwd=str(Path(__file__).resolve().parent.parent),
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                )
+                for line in proc.stdout:
+                    line = line.rstrip()
+                    if line:
+                        infer_status_md.content = f"_{line[-120:]}_"
+                        print(f"[inference] {line}")
+                proc.wait()
+                if proc.returncode == 0:
+                    infer_status_md.content = "_Inference complete!_"
+                    if event.client is not None:
+                        event.client.add_notification(
+                            title="Inference Complete",
+                            body=f"Output saved to {infer_save_folder_txt.value.strip()}",
+                            color="green",
+                        )
+                else:
+                    infer_status_md.content = f"_Inference failed (exit {proc.returncode}). Check terminal._"
+            except Exception as exc:
+                infer_status_md.content = f"_Inference error: {exc}_"
+                print(f"[inference error] {exc}")
+
+        threading.Thread(target=_infer_worker, daemon=True).start()
 
     # ── Playback thread helpers ───────────────────────────────────────────────
     def _stop_playback() -> None:
