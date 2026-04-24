@@ -289,6 +289,11 @@ def _parse_args():
         help="Video ID for naming the output file.",
     )
     parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing output video instead of skipping.",
+    )
+    parser.add_argument(
         "--base_folder",
         type=str,
         default=None,
@@ -421,8 +426,8 @@ def generate(args):
         else:
             video_mp4_path = os.path.join(args.save_folder, "output.mp4")
 
-        if os.path.exists(video_mp4_path):
-            logging.info(f"Video already exists: {video_mp4_path}")
+        if os.path.exists(video_mp4_path) and not getattr(args, 'overwrite', False):
+            logging.info(f"Video already exists: {video_mp4_path} (use --overwrite to replace)")
             return
 
         video_euler = wan_v2v.generate(

@@ -1330,7 +1330,7 @@ def run(args: argparse.Namespace) -> None:
             '--ref_path="input.mp4"',
             '--mask_pink_path="render_pink.mp4"',
             f'--caption="{infer_caption_txt.value.strip()}"',
-            '--video_id="output.mp4"',
+            f'--video_id="output_{int(__import__("time").time())}.mp4"',
         ]
         ckpt = infer_ckpt_dir_txt.value.strip()
         if ckpt:
