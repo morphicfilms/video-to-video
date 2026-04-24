@@ -675,7 +675,7 @@ def run(args: argparse.Namespace) -> None:
                     "SOR Neighbors", initial_value=20, min=1, max=100, step=1
                 )
                 render_std_ratio_num = server.gui.add_number(
-                    "SOR Std Ratio", initial_value=4.0, min=0.0, max=10.0, step=0.1
+                    "SOR Std Ratio", initial_value=1.0, min=0.0, max=10.0, step=0.1
                 )
             btn_render_assets = server.gui.add_button("Render Videos + Masks", color="teal")
         render_status_md = server.gui.add_markdown("")
