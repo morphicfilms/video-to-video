@@ -8,9 +8,9 @@
 > Midhun Harikumar
 > *Morphic Inc.*
 
-[![arXiv](https://img.shields.io/badge/arXiv-TODO-b31b1b?logo=arxiv&logoColor=red)](TODO)
+[![arXiv](https://img.shields.io/badge/arXiv-TODO-b31b1b?logo=arxiv&logoColor=red)](https://arxiv.org/abs/2604.21776)
 [![Project Page](https://img.shields.io/badge/Reshoot--Anything-Website-blue?logo=googlechrome&logoColor=blue)](https://adithyaiyer1999.github.io/reshoot-anything/)
-[![Video](https://img.shields.io/badge/YouTube-Video-c4302b?logo=youtube&logoColor=red)](TODO)
+[![Video](https://img.shields.io/badge/YouTube-Video-c4302b?logo=youtube&logoColor=red)](https://arxiv.org/abs/2604.21776)
 
 <p align="center">
   <img src="assets/banner.png?raw=true" alt="Reshoot-Anything teaser" width="100%">
