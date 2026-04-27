@@ -139,7 +139,21 @@ Run the Reshoot-Anything WAN 2.2 fine-tune on the anchor pack. `run_wan22_infere
 is a reference launcher; edit `VIDEO_PATH`, `MASK_PATH`, `REF_PATH`, `CAPTION`, and
 the LoRA paths at the top to point at your condition pack, then:
 
+Download the Wan2.2 I2V base weights:
+
 ```bash
+huggingface-cli download Wan-AI/Wan2.2-I2V-A14B --local-dir ./Wan2.2-I2V-A14B
+```
+
+Download the Reshoot-Anything LoRA weights:
+
+```bash
+huggingface-cli download morphic/reshoot-anything --local-dir ./reshoot-anything-weights
+```
+
+```bash
+HIGH_NOISE_LORA_WEIGHTS=./reshoot-anything-weights/jan06_scaling_80k_ckpt1400.safetensors \
+LOW_NOISE_LORA_WEIGHTS=./reshoot-anything-weights/dec23_v2v_lownoise_black_lora_512_ckpt1000.safetensors \
 ./run_wan22_inference.sh
 ```
 
